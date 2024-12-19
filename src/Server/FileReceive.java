@@ -1,6 +1,7 @@
 package Server;
 
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -15,26 +16,33 @@ public class FileReceive implements Runnable{
     @Override
     public void run() {
         try {
-            System.out.println("Receiving file from the client");
-
             DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
-            FileOutputStream fileOutputStream = new FileOutputStream("received");
+
+            long fileSize = dataInputStream.readLong();
+            System.out.println("Receiving file of size " + fileSize + " bytes");
+            long totalBytesReadAndWrite = 0;
+            String filename = dataInputStream.readUTF();
+
+            File file = new File(filename);
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
 
             byte[] b = new byte[4096]; // buffer of 4KB
-            int bytesRead = dataInputStream.read(b);
+            int bytesRead = dataInputStream.read(b,0, (int)Math.min(b.length, fileSize-totalBytesReadAndWrite));
             // this will read some (no known exactly) number of bytes from the inputStream and stores in the
             // buffer b and returns the number of bytes read
 
-            while(bytesRead != -1) {
+            while(totalBytesReadAndWrite < fileSize) {
                 fileOutputStream.write(b,0, bytesRead);
-                bytesRead = dataInputStream.read(b);
+                totalBytesReadAndWrite += bytesRead;
+                bytesRead = dataInputStream.read(b,0, (int)Math.min(b.length, fileSize-totalBytesReadAndWrite));
             }
 
-            System.out.println("File received successfully and stored as received");
+            System.out.println("File received successfully and stored as " + filename);
             System.out.println();
-            System.out.println("Waiting for new connections...");
+//            System.out.println("Waiting for new connections...");
+            // closing the resources
             fileOutputStream.close();
-            dataInputStream.close();
+//            dataInputStream.close();
 
 
         } catch (IOException e) {
