@@ -51,7 +51,6 @@ public class FileServer {
                 }
 
                 System.out.println("Waiting for connections...");
-
             }
         }
         catch (IOException e) {

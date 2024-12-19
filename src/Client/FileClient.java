@@ -11,7 +11,7 @@ import java.util.Scanner;
 
 public class FileClient {
     private static Socket socket;
-    private static DataOutputStream dataOutputStream;
+    private static DataOutputStream dataOutputStream; // this acts as an outputStream of socket
     private static final String SERVER_IP = "localhost"; // IP of the server | default is localHost
     private static final int PORT = 5000; // Port of the server which we need to connect
 
@@ -27,24 +27,32 @@ public class FileClient {
 
     public static void sendFile(File file) {
         try{
-
+            System.out.println("Sending the file");
             // saving the file size and length
-            dataOutputStream.writeLong(file.length());
             dataOutputStream.writeUTF(file.getName());
+            dataOutputStream.writeLong(file.length());
 
             // To read content from the file we use FileInputStream
             FileInputStream fileInputStream = new FileInputStream(file);
 
-            byte[] b = new byte[4096]; // buffer set to 4KB
+            byte[] b = new byte[4096]; // buffer(external) set to 4KB
+            // this is not an internal buffer, we have created it so what we can send chunks of data at a time
+            // We do not want to read the data byte-by-byte and sent it
 
             int bytesRead = fileInputStream.read(b);
             // IMP ** This will read the file data of length at-most b.length() and will save the bytes
-            // in the buffer byte array b and returns the number of bytes it has read
+            // in the buffer byte array b and returns the number of bytes it has actually read
             // so bytesRead is at-most b.length() ie. bytesRead <= b.length()
 
             while(bytesRead != -1) {
                 dataOutputStream.write(b,0,bytesRead);
                 // writes the data from the buffer from 0 -> bytesRead
+
+                // Concept: when we are writing in the dataOutputStream we are actually writing inside the internal
+                // buffer of the dataOutputStream, this action does not send data over overwork to other PC
+
+                // IMP note: if the internal buffer is full , then data is automatically transferred over the network
+                // and internal buffer is cleared
 
                 // Reading next
                 bytesRead = fileInputStream.read(b);
@@ -53,8 +61,10 @@ public class FileClient {
             System.out.println("File sent successfully to the server");
 
             // close the streams
-            dataOutputStream.flush();
+            dataOutputStream.flush(); // flush action: data of the internal buffer is immediately transferred over the
+            // network and internal buffer is cleared and OutputStream can now be used to write and send other file
             fileInputStream.close();
+
         }
         catch (IOException e) {
             e.printStackTrace();
